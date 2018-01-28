@@ -1,4 +1,8 @@
 void quit();
+void print_jobs();
+int get_job_pid(int id);
+void clean_and_wait_jobs();
+
 int check_builtin(char *cmd)
 {
     if (strcmp(cmd, "exit") == 0)
@@ -21,11 +25,13 @@ int check_builtin(char *cmd)
         return 8;
     if (strcmp(cmd, "history") == 0)
         return 9;
+    if (strcmp(cmd, "debug") == 0)
+        return 10;
     else
         return -1;
 }
 
-void run_builtin(int builtin, char *argv[], int argc)
+void run_builtin(int builtin, char *argv[], int argc, FILE *outfile)
 {
     char str[LINE_SIZE];
     switch (builtin)
@@ -38,12 +44,41 @@ void run_builtin(int builtin, char *argv[], int argc)
             chdir(argv[1]);
         break;
     case 2: // jobs
+        print_jobs();
         break;
     case 3: // kill
+        if (argv[1])
+        {
+            if (argv[1][0] == '%')
+            {
+                int jobid = strtol(argv[1] + 1, NULL, 10);
+                int pid = get_job_pid(jobid);
+                if (pid > 0)
+                {
+                    printf("Killing job id %d with pid %d\n", jobid, pid);
+                    if (kill(pid, SIGKILL) == -1)
+                        perror("Kill Error");
+                }
+                else {
+                    printf("No such job. \n");
+                }
+            }
+            else
+            {
+                int pid = strtol(argv[1], NULL, 10);
+                if (pid > 0)
+                {
+                    printf("Killing pid %d\n", pid);
+                    if (kill(pid, SIGKILL) == -1)
+                        perror("Kill Error");
+                }
+            }
+        }
+        clean_and_wait_jobs();
         break;
     case 4: // pwd
         getcwd(str, LINE_SIZE);
-        printf("%s\n", str);
+        fprintf(outfile, "%s\n", str);
         break;
     case 5: // set
         break;
@@ -53,24 +88,30 @@ void run_builtin(int builtin, char *argv[], int argc)
         for (int i = 1; i < argc; i++)
         {
             if (check_builtin(argv[i]) >= 0)
-                printf("%s is a shell builtin\n", argv[i]);
+                fprintf(outfile, "%s is a shell builtin\n", argv[i]);
             else
             {
-                char *path=NULL;
-                path=realpath(argv[i], path);
-                if (path!=NULL)
-                    printf("%s is %s\n", argv[i], path);
+                char *path = NULL;
+                path = realpath(argv[i], path);
+                if (path != NULL)
+                    fprintf(outfile, "%s is %s\n", argv[i], path);
             }
         }
         break;
     case 8: // echo
-        for(int i=1;i<argc;i++){
-            printf("%s",argv[i]);
-            if(i<argc-1)printf(" ");
+        for (int i = 1; i < argc; i++)
+        {
+            fprintf(outfile, "%s", argv[i]);
+            if (i < argc - 1)
+                fprintf(outfile, " ");
         }
-        printf("\n");
+        fprintf(outfile, "\n");
         break;
     case 9: // history
+        break;
+    case 10: //debug
+        DEBUG = DEBUG ? 0 : 1;
+        printf("Setting debug to %d\n", DEBUG);
         break;
     default:
         break;
