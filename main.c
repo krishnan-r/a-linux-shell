@@ -174,6 +174,13 @@ void quit()
 
 int main(int argc, char **argv)
 {
+    char *homedir = getenv("HOME");
+    char histfile[LINE_SIZE] = "";
+    if (homedir)
+        strcat(histfile, homedir);
+    else strcat(histfile, ".history");
+    strcat(histfile, "/.oslab_history");
+    read_history(histfile);
     print_splash();
     pid_t pid = -1;
 
@@ -196,7 +203,10 @@ int main(int argc, char **argv)
             char cmdline2[LINE_SIZE];
             strcpy(cmdline2, cmdline);
             if (history_expand(cmdline2, &cmdline) == 0)
+            {
                 add_history(cmdline);
+                write_history(histfile);
+            }
         }
         //printf("%s", cmdline);
 

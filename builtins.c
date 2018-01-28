@@ -59,7 +59,8 @@ void run_builtin(int builtin, char *argv[], int argc, FILE *outfile)
                     if (kill(pid, SIGKILL) == -1)
                         perror("Kill Error");
                 }
-                else {
+                else
+                {
                     printf("No such job. \n");
                 }
             }
@@ -107,8 +108,18 @@ void run_builtin(int builtin, char *argv[], int argc, FILE *outfile)
         }
         fprintf(outfile, "\n");
         break;
-    case 9: // history
-        break;
+    case 9: // history;
+    ;
+    {
+        register HIST_ENTRY **the_list;
+        register int i;
+
+        the_list = history_list();
+        if (the_list)
+            for (i = 0; the_list[i]; i++)
+                printf("%d: %s\n", i + history_base, the_list[i]->line);
+    }
+    break;
     case 10: //debug
         DEBUG = DEBUG ? 0 : 1;
         printf("Setting debug to %d\n", DEBUG);
